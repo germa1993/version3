@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Pluvalia Web App</title>
+  <script src="https://kit.fontawesome.com/a2e1e6c44b.js" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script>
+    window.jsPDF = window.jspdf.jsPDF;
+  </script>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet" />
+  <style>
+    @media print {
+      .no-print { display: none; }
+      .print-only { display: block !important; }
+    }
+    .print-only { display: none; }
+    .modal { display: none; }
+    .modal.show { display: flex !important; }
+    .slider-container { position: relative; overflow: hidden; }
+    .slider-track {
+      display: flex;
+      transition: transform 0.3s ease-in-out;
+    }
+    .mini-slider {
+      width: 40px;
+      height: 30px;
+      object-fit: cover;
+      border: 2px solid transparent;
+      cursor: pointer;
+    }
+    .mini-slider:hover {
+      border-color: #2563eb; /* blue-600 */
+    }
+  </style>
+</head>
+<body class="bg-gray-50 text-gray-800 min-h-screen flex flex-col">
+
+  <!-- NAVBAR -->
+  <nav class="bg-white shadow-md p-4 flex justify-between items-center">
+    <div class="font-bold text-xl text-blue-600">Pluvalia</div>
+    <div class="space-x-2">
+      <button id="loginBtn" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Iniciar Sesión</button>
+      <button id="registerBtn" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">Registrarse</button>
+      <div id="userMenu" class="hidden flex items-center space-x-4">
+        <span id="userName" class="font-semibold"></span>
+        <button id="dashboardBtn" class="bg-gray-200 px-3 py-1 rounded hover:bg-gray-300">Panel</button>
+        <button id="logoutBtn" class="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700">Cerrar sesión</button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- PUBLIC VIEW -->
+  <main id="publicView" class="flex-grow p-6 max-w-6xl mx-auto">
+    <h1 class="text-3xl font-bold mb-6 text-center">Propiedades disponibles</h1>
+    <div id="propertiesGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+  </main>
+
+  <!-- DASHBOARD -->
+  <section id="dashboard" class="hidden flex-grow p-6 max-w-6xl mx-auto flex flex-col">
+    <div class="flex justify-between items-center mb-6">
+      <h2 class="text-2xl font-bold">Panel de Asesor</h2>
+      <button id="backToPublicBtn" class="bg-gray-300 px-4 py-2 rounded hover:bg-gray-400">Volver a Propiedades</button>
+    </div>
+    <div class="mb-6 flex space-x-4 text-gray-700">
+      <div class="bg-white shadow rounded p-4 flex-1 text-center">
+        <div class="text-sm">Total de propiedades</div>
+        <div id="totalProps" class="text-2xl font-bold">0</div>
+      </div>
+      <div class="bg-white shadow rounded p-4 flex-1 text-center">
+        <div class="text-sm">Publicadas</div>
+        <div id="publishedProps" class="text-2xl font-bold">0</div>
+      </div>
+      <div class="bg-white shadow rounded p-4 flex-1 text-center">
+        <div class="text-sm">Borradores</div>
+        <div id="draftProps" class="text-2xl font-bold">0</div>
+      </div>
+      <div class="bg-white shadow rounded p-4 flex-1 text-center">
+        <div class="text-sm">Vistas totales</div>
+        <div id="viewsCount" class="text-2xl font-bold">0</div>
+      </div>
+    </div>
+    <div class="mb-4 flex justify-end">
+      <button id="newPropertyBtn" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">Nueva Propiedad</button>
+    </div>
+    <div id="userProperties" class="space-y-4 overflow-auto max-h-[50vh]"></div>
+  </section>
+
+  <!-- MODALS -->
+
+  <!-- Login Modal -->
+  <div id="loginModal" class="modal fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-lg max-w-md w-full">
+      <div class="p-6">
+        <h3 class="text-xl font-bold mb-4">Iniciar Sesión</h3>
+        <form id="loginForm" class="space-y-4">
+          <div>
+            <label for="loginEmail" class="block text-sm font-medium text-gray-700 mb-2">Email</label>
+            <input type="email" id="loginEmail" required class="w-full border border-gray-300 rounded px-3 py-2" />
+          </div>
+          <div>
+            <label for="loginPassword" class="block text-sm font-medium text-gray-700 mb-2">Contraseña</label>
+            <input type="password" id="loginPassword" required class="w-full border border-gray-300 rounded px-3 py-2" />
+          </div>
+          <div class="flex justify-between">
+            <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Ingresar</button>
+            <button type="button" id="closeLoginModal" class="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700">Cancelar</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Register Modal -->
+  <div id="registerModal" class="modal fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-lg max-w-md w-full">
+      <div class="p-6">
+        <h3 class="text-xl font-bold mb-4">Registrarse</h3>
+        <form id="registerForm" class="space-y-4">
+          <div>
+            <label for="registerName" class="block text-sm font-medium text-gray-700 mb-2">Nombre</label>
+            <input type="text" id="registerName" required class="w-full border border-gray-300 rounded px-3 py-2" />
+          </div>
+          <div>
+            <label for="registerEmail" class="block text-sm font-medium text-gray-700 mb-2">Email</label>
+            <input type="email" id="registerEmail" required class="w-full border border-gray-300 rounded px-3 py-2" />
+          </div>
+          <div>
+            <label for="registerPassword" class="block text-sm font-medium text-gray-700 mb-2">Contraseña</label>
+            <input type="password" id="registerPassword" required class="w-full border border-gray-300 rounded px-3 py-2" />
+          </div>
+          <div class="flex justify-between">
+            <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">Registrarse</button>
+            <button type="button" id="closeRegisterModal" class="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700">Cancelar</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Property Modal -->
+  <div id="propertyModal" class="modal fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-lg max-w-lg w-full max-h-[90vh] overflow-y-auto">
+      <div class="p-6">
+        <h3 id="modalTitle" class="text-xl font-bold mb-4">Nueva Propiedad</h3>
+        <form id="propertyForm" class="space-y-4">
+          <div>
+            <label for="propTitle" class="block text-sm font-medium text-gray-700 mb-2">Título</label>
+            <input type="text" id="propTitle" required class="w-full border border-gray-300 rounded px-3 py-2" />
+          </div>
+          <div>
+            <label for="propPrice" class="block text-sm font-medium text-gray-700 mb-2">Precio</label>
+            <input type="number" id="propPrice" required class="w-full border border-gray-300 rounded px-3 py-2" />
+          </div>
+          <div>
+            <label for="propType" class="block text-sm font-medium text-gray-700 mb-2">Tipo</label>
+            <select id="propType" required class="w-full border border-gray-300 rounded px-3 py-2">
+              <option value="">Selecciona</option>
+              <option value="casa">Casa</option>
+              <option value="departamento">Departamento</option>
+              <option value="terreno">Terreno</option>
+              <option value="local">Local Comercial</option>
+              <option value="otro">Otro</option>
+            </select>
+          </div>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label for="propRooms" class="block text-sm font-medium text-gray-700 mb-2">Habitaciones</label>
+              <input type="number" id="propRooms" min="0" class="w-full border border-gray-300 rounded px-3 py-2" />
+            </div>
+            <div>
+              <label for="propBaths" class="block text-sm font-medium text-gray-700 mb-2">Baños</label>
+              <input type="number" id="propBaths" min="0" class="w-full border border-gray-300 rounded px-3 py-2" />
+            </div>
+          </div>
+          <div>
+            <label for="propArea" class="block text-sm font-medium text-gray-700 mb-2">Área (m²)</label>
+            <input type="number" id="propArea" min="0" class="w-full border border-gray-300 rounded px-3 py-2" />
+          </div>
+          <div>
+            <label for="propLocation" class="block text-sm font-medium text-gray-700 mb-2">Ubicación</label>
+            <input type="text" id="propLocation" required class="w-full border border-gray-300 rounded px-3 py-2" />
+          </div>
+          <div>
+            <label for="propDescription" class="block text-sm font-medium text-gray-700 mb-2">Descripción</label>
+            <textarea id="propDescription" rows="3" class="w-full border border-gray-300 rounded px-3 py-2"></textarea>
+          </div>
+          <div>
+            <label for="propImages" class="block text-sm font-medium text-gray-700 mb-2">Imágenes</label>
+            <input type="file" id="propImages" accept="image/*" multiple class="w-full" />
+            <div id="imagePreview" class="grid grid-cols-4 gap-2 mt-2"></div>
+          </div>
+          <div class="flex justify-end space-x-2">
+            <button type="button" id="cancelBtn" class="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700">Cancelar</button>
+            <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">Guardar Propiedad</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Property Detail Modal -->
+  <div id="propertyDetailModal" class="modal fixed inset-0 bg-black bg-opacity-75 z-60 flex items-center justify-center p-4">
+    <div class="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto relative">
+      <button id="closeDetailModal" class="absolute top-4 right-4 text-gray-600 hover:text-gray-900 text-xl font-bold no-print">&times;</button>
+      <div id="propertyDetailContent" class="p-6">
+        <!-- Contenido dinámico -->
+      </div>
+      <div class="p-6 border-t flex justify-end space-x-3 no-print">
+        <button id="downloadPdfBtn" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 flex items-center space-x-2">
+          <i class="fas fa-download"></i><span>Descargar Ficha PDF</span>
+        </button>
+        <button id="closeDetailModalFooter" class="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCRIPTS -->
+  <script>
+    // Variables globales
+    let currentUser = null;
+    let properties = [];
+    let currentPropertyId = null;
+
+    // Helpers para localStorage
+    function saveUsers(users) {
+      localStorage.setItem('pluvaliaUsers', JSON.stringify(users));
+    }
+    function loadUsers() {
+      const users = localStorage.getItem('pluvaliaUsers');
+      return users ? JSON.parse(users) : [];
+    }
+    function saveProperties(props) {
+      localStorage.setItem('pluvaliaProperties', JSON.stringify(props));
+    }
+    function loadProperties() {
+      const props = localStorage.getItem('pluvaliaProperties');
+      return props ? JSON.parse(props) : [];
+    }
+
+    // Manejo sesión
+    function saveSession(user) {
+      localStorage.setItem('pluvaliaSession', JSON.stringify(user));
+    }
+    function loadSession() {
+      const session = localStorage.getItem('pluvaliaSession');
+      return session ? JSON.parse(session) : null;
+    }
+    function clearSession() {
+      localStorage.removeItem('pluvaliaSession');
+    }
+
+    // Render navbar según usuario
+    function renderNavbar() {
+      const loginBtn = document.getElementById('loginBtn');
+      const registerBtn = document.getElementById('registerBtn');
+      const userMenu = document.getElementById('userMenu');
+      const userName = document.getElementById('userName');
+      if(currentUser) {
+        loginBtn.classList.add('hidden');
+        registerBtn.classList.add('hidden');
+        userMenu.classList.remove('hidden');
+        userName.textContent = currentUser.name;
+      } else {
+        loginBtn.classList.remove('hidden');
+        registerBtn.classList.remove('hidden');
+        userMenu.classList.add('hidden');
+        userName.textContent = '';
+      }
+    }
+
+    // Mostrar propiedades públicas
+    function renderProperties() {
+      const container = document.getElementById('propertiesGrid');
+      container.innerHTML = '';
+      properties.forEach(p => {
+        const card = document.createElement('div');
+        card.className = 'bg-white rounded shadow hover:shadow-lg cursor-pointer flex flex-col';
+
+        // Imagen principal o placeholder
+        let imgSrc = '';
+        if(p.images && p.images.length > 0) imgSrc = p.images[0];
+        else imgSrc = 'https://via.placeholder.com/400x250?text=Sin+Imagen';
+
+        card.innerHTML = `
+          <img src="${imgSrc}" alt="${p.title}" class="w-full h-48 object-cover rounded-t" />
+          <div class="p-4 flex-grow flex flex-col justify-between">
+            <div>
+              <h3 class="text-lg font-semibold mb-1">${p.title}</h3>
+              <p class="text-sm text-gray-600 mb-2">${p.location}</p>
+              <p class="text-blue-600 font-bold text-xl">$${p.price.toLocaleString()}</p>
+            </div>
+            <button class="mt-4 bg-blue-600 text-white py-2 rounded hover:bg-blue-700" onclick="openPropertyDetail('${p.id}')">Ver detalles</button>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    // Abrir modal detalle propiedad
+    function openPropertyDetail(id) {
+      currentPropertyId = id;
+      const prop = properties.find(p => p.id === id);
+      if(!prop) return alert('Propiedad no encontrada');
+      const detailContent = document.getElementById('propertyDetailContent');
+
+      // Contenido con ficha técnica y slider de imágenes
+      let imagesHtml = '';
+      if(prop.images && prop.images.length > 0) {
+        imagesHtml = `<div class="slider-container mb-4 overflow-x-auto flex space-x-2">`;
+        prop.images.forEach(img => {
+          imagesHtml += `<img src="${img}" class="mini-slider rounded cursor-pointer" onclick="changeMainImage(this.src)" alt="Imagen propiedad" />`;
+        });
+        imagesHtml += `</div>`;
+      }
+
+      detailContent.innerHTML = `
+        <h2 class="text-2xl font-bold mb-2">${prop.title}</h2>
+        <div class="mb-4">
+          <img id="mainImage" src="${prop.images && prop.images.length>0 ? prop.images[0] : 'https://via.placeholder.com/600x350?text=Sin+Imagen'}" alt="Imagen principal" class="w-full rounded max-h-96 object-cover" />
+        </div>
+        ${imagesHtml}
+        <div class="grid grid-cols-2 gap-4 mb-4">
+          <div><strong>Precio:</strong> $${prop.price.toLocaleString()}</div>
+          <div><strong>Tipo:</strong> ${capitalize(prop.type)}</div>
+          <div><strong>Habitaciones:</strong> ${prop.rooms || 'N/A'}</div>
+          <div><strong>Baños:</strong> ${prop.baths || 'N/A'}</div>
+          <div><strong>Área:</strong> ${prop.area ? prop.area + ' m²' : 'N/A'}</div>
+          <div><strong>Ubicación:</strong> ${prop.location}</div>
+        </div>
+        <div class="mb-4"><strong>Descripción:</strong><p>${prop.description || 'Sin descripción'}</p></div>
+      `;
+
+      showModal('propertyDetailModal');
+    }
+
+    // Cambiar imagen principal en slider detalle
+    function changeMainImage(src) {
+      const mainImage = document.getElementById('mainImage');
+      mainImage.src = src;
+    }
+
+    // Capitalizar palabra
+    function capitalize(text) {
+      if(!text) return '';
+      return text.charAt(0).toUpperCase() + text.slice(1);
+    }
+
+    // Abrir y cerrar modales
+    function showModal(id) {
+      document.getElementById(id).classList.add('show');
+    }
+    function hideModal(id) {
+      document.getElementById(id).classList.remove('show');
+    }
+
+    // Registro
+    document.getElementById('registerBtn').addEventListener('click', () => showModal('registerModal'));
+    document.getElementById('closeRegisterModal').addEventListener('click', () => hideModal('registerModal'));
+    document.getElementById('registerForm').addEventListener('submit', e => {
+      e.preventDefault();
+      const name = document.getElementById('registerName').value.trim();
+      const email = document.getElementById('registerEmail').value.trim().toLowerCase();
+      const password = document.getElementById('registerPassword').value.trim();
+
+      if(!name || !email || !password) return alert('Completa todos los campos');
+      const users = loadUsers();
+      if(users.find(u => u.email === email)) return alert('Email ya registrado');
+
+      users.push({name, email, password});
+      saveUsers(users);
+      alert('Registro exitoso, ahora inicia sesión');
+      hideModal('registerModal');
+    });
+
+    // Login
+    document.getElementById('loginBtn').addEventListener('click', () => showModal('loginModal'));
+    document.getElementById('closeLoginModal').addEventListener('click', () => hideModal('loginModal'));
+    document.getElementById('loginForm').addEventListener('submit', e => {
+      e.preventDefault();
+      const email = document.getElementById('loginEmail').value.trim().toLowerCase();
+      const password = document.getElementById('loginPassword').value.trim();
+
+      if(!email || !password) return alert('Completa todos los campos');
+      const users = loadUsers();
+      const user = users.find(u => u.email === email && u.password === password);
+      if(!user) return alert('Usuario o contraseña incorrectos');
+
+      currentUser = user;
+      saveSession(user);
+      renderNavbar();
+      renderDashboard();
+      hideModal('loginModal');
+      showDashboard();
+    });
+
+    // Logout
+    document.getElementById('logoutBtn').addEventListener('click', () => {
+      if(confirm('¿Cerrar sesión?')) {
+        currentUser = null;
+        clearSession();
+        renderNavbar();
+        showPublicView();
+      }
+    });
+
+    // Mostrar dashboard
+    function showDashboard() {
+      document.getElementById('publicView').classList.add('hidden');
+      document.getElementById('dashboard').classList.remove('hidden');
+    }
+    // Volver a vista pública
+    document.getElementById('backToPublicBtn').addEventListener('click', () => {
+      showPublicView();
+    });
+    function showPublicView() {
+      document.getElementById('publicView').classList.remove('hidden');
+      document.getElementById('dashboard').classList.add('hidden');
+      currentPropertyId = null;
+    }
+
+    // Render dashboard con propiedades del usuario
+    function renderDashboard() {
+      const userProps = properties.filter(p => p.ownerEmail === currentUser.email);
+      const container = document.getElementById('userProperties');
+      container.innerHTML = '';
+
+      document.getElementById('totalProps').textContent = userProps.length;
+      document.getElementById('publishedProps').textContent = userProps.filter(p => p.status === 'publicada').length;
+      document.getElementById('draftProps').textContent = userProps.filter(p => p.status === 'borrador').length;
+      document.getElementById('viewsCount').textContent = userProps.reduce((acc,p) => acc+(p.views||0), 0);
+
+      if(userProps.length === 0) {
+        container.innerHTML = '<p>No tienes propiedades registradas aún.</p>';
+        return;
+      }
+
+      userProps.forEach(p => {
+        const card = document.createElement('div');
+        card.className = 'bg-white p-4 rounded shadow flex justify-between items-center';
+
+        let imgSrc = p.images && p.images.length > 0 ? p.images[0] : 'https://via.placeholder.com/100x70?text=Sin+Imagen';
+
+        card.innerHTML = `
+          <div class="flex items-center space-x-4">
+            <img src="${imgSrc}" alt="Imagen propiedad" class="w-24 h-16 object-cover rounded" />
+            <div>
+              <div class="font-semibold">${p.title}</div>
+              <div class="text-sm text-gray-600">${p.location}</div>
+            </div>
+          </div>
+          <div class="space-x-2">
+            <button class="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700" onclick="editProperty('${p.id}')">Editar</button>
+            <button class="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700" onclick="deleteProperty('${p.id}')">Eliminar</button>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    // Crear nueva propiedad
+    document.getElementById('newPropertyBtn').addEventListener('click', () => {
+      openPropertyForm();
+    });
+
+    // Abrir formulario para nueva o editar propiedad
+    function openPropertyForm(id = null) {
+      const modalTitle = document.getElementById('modalTitle');
+      const form = document.getElementById('propertyForm');
+      modalTitle.textContent = id ? 'Editar Propiedad' : 'Nueva Propiedad';
+
+      // Reset form
+      form.reset();
+      document.getElementById('imagePreview').innerHTML = '';
+
+      if(id) {
+        const prop = properties.find(p => p.id === id);
+        if(!prop) return alert('Propiedad no encontrada');
+        document.getElementById('propTitle').value = prop.title;
+        document.getElementById('propPrice').value = prop.price;
+        document.getElementById('propType').value = prop.type;
+        document.getElementById('propRooms').value = prop.rooms || '';
+        document.getElementById('propBaths').value = prop.baths || '';
+        document.getElementById('propArea').value = prop.area || '';
+        document.getElementById('propLocation').value = prop.location;
+        document.getElementById('propDescription').value = prop.description || '';
+        // Mostrar imágenes actuales
+        const preview = document.getElementById('imagePreview');
+        preview.innerHTML = '';
+        if(prop.images && prop.images.length > 0) {
+          prop.images.forEach(img => {
+            const imgEl = document.createElement('img');
+            imgEl.src = img;
+            imgEl.className = 'w-20 h-16 object-cover rounded';
+            preview.appendChild(imgEl);
+          });
+        }
+      }
+      showModal('propertyModal');
+      currentPropertyId = id;
+    }
+
+    // Cancelar creación/edición
+    document.getElementById('cancelBtn').addEventListener('click', () => {
+      hideModal('propertyModal');
+    });
+
+    // Manejo preview de imágenes al seleccionar
+    document.getElementById('propImages').addEventListener('change', e => {
+      const preview = document.getElementById('imagePreview');
+      preview.innerHTML = '';
+      const files = e.target.files;
+      if(files.length === 0) return;
+
+      Array.from(files).forEach(file => {
+        if(!file.type.startsWith('image/')) return;
+        const reader = new FileReader();
+        reader.onload = function(evt) {
+          const img = document.createElement('img');
+          img.src = evt.target.result;
+          img.className = 'w-20 h-16 object-cover rounded';
+          preview.appendChild(img);
+        };
+        reader.readAsDataURL(file);
+      });
+    });
+
+    // Guardar propiedad nueva o editada
+    document.getElementById('propertyForm').addEventListener('submit', async e => {
+      e.preventDefault();
+
+      const title = document.getElementById('propTitle').value.trim();
+      const price = parseFloat(document.getElementById('propPrice').value);
+      const type = document.getElementById('propType').value;
+      const rooms = parseInt(document.getElementById('propRooms').value) || 0;
+      const baths = parseInt(document.getElementById('propBaths').value) || 0;
+      const area = parseFloat(document.getElementById('propArea').value) || 0;
+      const location = document.getElementById('propLocation').value.trim();
+      const description = document.getElementById('propDescription').value.trim();
+
+      if(!title || isNaN(price) || !type || !location) return alert('Completa los campos obligatorios');
+
+      // Procesar imágenes seleccionadas
+      const fileInput = document.getElementById('propImages');
+      const files = fileInput.files;
+      let images = [];
+
+      if(files.length > 0) {
+        images = await Promise.all(Array.from(files).map(file => {
+          return new Promise((res, rej) => {
+            const reader = new FileReader();
+            reader.onload = e => res(e.target.result);
+            reader.onerror = e => rej(e);
+            reader.readAsDataURL(file);
+          });
+        }));
+      } else if(currentPropertyId) {
+        // Mantener imágenes previas si se edita y no se cambian imágenes
+        const propExist = properties.find(p => p.id === currentPropertyId);
+        images = propExist && propExist.images ? propExist.images : [];
+      }
+
+      if(currentPropertyId) {
+        // Editar propiedad
+        const idx = properties.findIndex(p => p.id === currentPropertyId);
+        if(idx === -1) return alert('Propiedad no encontrada');
+        properties[idx] = {
+          ...properties[idx],
+          title, price, type, rooms, baths, area, location, description, images
+        };
+      } else {
+        // Crear propiedad
+        const newProp = {
+          id: crypto.randomUUID(),
+          ownerEmail: currentUser.email,
+          title, price, type, rooms, baths, area, location, description, images,
+          status: 'publicada',
+          views: 0,
+          createdAt: new Date().toISOString()
+        };
+        properties.push(newProp);
+      }
+
+      saveProperties(properties);
+      renderDashboard();
+      renderProperties();
+      hideModal('propertyModal');
+      alert('Propiedad guardada con éxito');
+    });
+
+    // Editar propiedad
+    function editProperty(id) {
+      openPropertyForm(id);
+    }
+    // Eliminar propiedad
+    function deleteProperty(id) {
+      if(confirm('¿Eliminar propiedad? Esta acción no se puede deshacer.')) {
+        properties = properties.filter(p => p.id !== id);
+        saveProperties(properties);
+        renderDashboard();
+        renderProperties();
+      }
+    }
+
+    // Descargar ficha técnica en PDF con jsPDF y html2canvas
+    document.getElementById('downloadPdfBtn').addEventListener('click', async () => {
+      const prop = properties.find(p => p.id === currentPropertyId);
+      if(!prop) return alert('No hay propiedad seleccionada');
+
+      // Construir contenido para el PDF
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'pt',
+        format: 'a4'
+      });
+
+      // Título
+      pdf.setFontSize(22);
+      pdf.setTextColor(33, 37, 41);
+      pdf.text(prop.title, 40, 50);
+
+      // Datos generales
+      pdf.setFontSize(14);
+      pdf.setTextColor(55, 65, 81);
+      pdf.text(`Precio: $${prop.price.toLocaleString()}`, 40, 80);
+      pdf.text(`Tipo: ${capitalize(prop.type)}`, 40, 100);
+      pdf.text(`Habitaciones: ${prop.rooms || 'N/A'}`, 40, 120);
+      pdf.text(`Baños: ${prop.baths || 'N/A'}`, 40, 140);
+      pdf.text(`Área: ${prop.area ? prop.area + ' m²' : 'N/A'}`, 40, 160);
+      pdf.text(`Ubicación: ${prop.location}`, 40, 180);
+
+      // Descripción
+      pdf.setFontSize(12);
+      pdf.setTextColor(75, 85, 99);
+      const splitDesc = pdf.splitTextToSize(prop.description || 'Sin descripción', 510);
+      pdf.text('Descripción:', 40, 210);
+      pdf.text(splitDesc, 40, 230);
+
+      // Imágenes
+      if(prop.images && prop.images.length > 0) {
+        let yPos = pdf.internal.pageSize.getHeight() - 250;
+        for(let i = 0; i < prop.images.length && i < 4; i++) {
+          try {
+            await new Promise((res) => {
+              const img = new Image();
+              img.src = prop.images[i];
+              img.onload = () => {
+                pdf.addImage(img, 'JPEG', 40 + i*130, yPos, 120, 90);
+                res();
+              };
+              img.onerror = () => res();
+            });
+          } catch(e) {
+            // Ignorar error en carga imagen
+          }
+        }
+      }
+
+      pdf.save(`FichaTecnica_${prop.title.replace(/\s+/g, '_')}.pdf`);
+    });
+
+    // Inicializar app
+    function init() {
+      currentUser = loadSession();
+      properties = loadProperties();
+
+      renderNavbar();
+      renderProperties();
+
+      // Cerrar modales si se da click fuera contenido
+      ['loginModal','registerModal','propertyModal','propertyDetailModal'].forEach(id => {
+        const modal = document.getElementById(id);
+        modal.addEventListener('click', e => {
+          if(e.target === modal) hideModal(id);
+        });
+      });
+
+      // Cerrar detalle modal
+      document.getElementById('closeDetailModal').addEventListener('click', () => hideModal('propertyDetailModal'));
+      document.getElementById('closeDetailModalFooter').addEventListener('click', () => hideModal('propertyDetailModal'));
+
+      if(currentUser) showDashboard();
+    }
+
+    window.onload = init;
+  </script>
+</body>
+</html>
