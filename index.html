@@ -12,29 +12,42 @@
   </script>
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet" />
   <style>
-    @media print {
-      .no-print { display: none; }
-      .print-only { display: block !important; }
-    }
-    .print-only { display: none; }
-    .modal { display: none; }
-    .modal.show { display: flex !important; }
-    .slider-container { position: relative; overflow: hidden; }
-    .slider-track {
-      display: flex;
-      transition: transform 0.3s ease-in-out;
-    }
-    .mini-slider {
-      width: 40px;
-      height: 30px;
-      object-fit: cover;
-      border: 2px solid transparent;
-      cursor: pointer;
-    }
-    .mini-slider:hover {
-      border-color: #2563eb; /* blue-600 */
-    }
-  </style>
+  @media print {
+    .no-print { display: none; }
+    .print-only { display: block !important; }
+  }
+  .print-only { display: none; }
+  .modal { display: none; }
+  .modal.show { display: flex !important; }
+  .slider-container { position: relative; overflow: hidden; }
+  .slider-track {
+    display: flex;
+    transition: transform 0.3s ease-in-out;
+  }
+  .mini-slider {
+    width: 40px;
+    height: 30px;
+    object-fit: cover;
+    border: 2px solid transparent;
+    cursor: pointer;
+  }
+  .mini-slider:hover {
+    border-color: #2563eb; /* blue-600 */
+  }
+
+  /* 👇 Agrega esto al final */
+  .scrollbar-visible::-webkit-scrollbar {
+    width: 8px;
+  }
+  .scrollbar-visible::-webkit-scrollbar-thumb {
+    background-color: rgba(100, 100, 100, 0.5);
+    border-radius: 4px;
+  }
+  .scrollbar-visible {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(100, 100, 100, 0.5) transparent;
+  }
+</style>
 </head>
 <body class="bg-gray-50 text-gray-800 min-h-screen flex flex-col">
 
@@ -141,65 +154,65 @@
   </div>
 
   <!-- Property Modal -->
-  <div id="propertyModal" class="modal fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-    <div class="bg-white rounded-lg max-w-lg w-full max-h-[90vh] overflow-y-auto">
-      <div class="p-6">
-        <h3 id="modalTitle" class="text-xl font-bold mb-4">Nueva Propiedad</h3>
-        <form id="propertyForm" class="space-y-4">
+<div id="propertyModal" class="modal fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+  <div class="bg-white rounded-lg max-w-lg w-full max-h-[90vh] overflow-y-auto scroll-smooth p-4 scrollbar-visible">
+    <div class="p-2">
+      <h3 id="modalTitle" class="text-xl font-bold mb-4">Nueva Propiedad</h3>
+      <form id="propertyForm" class="space-y-4">
+        <div>
+          <label for="propTitle" class="block text-sm font-medium text-gray-700 mb-2">Título</label>
+          <input type="text" id="propTitle" required class="w-full border border-gray-300 rounded px-3 py-2" />
+        </div>
+        <div>
+          <label for="propPrice" class="block text-sm font-medium text-gray-700 mb-2">Precio</label>
+          <input type="number" id="propPrice" required class="w-full border border-gray-300 rounded px-3 py-2" />
+        </div>
+        <div>
+          <label for="propType" class="block text-sm font-medium text-gray-700 mb-2">Tipo</label>
+          <select id="propType" required class="w-full border border-gray-300 rounded px-3 py-2">
+            <option value="">Selecciona</option>
+            <option value="casa">Casa</option>
+            <option value="departamento">Departamento</option>
+            <option value="terreno">Terreno</option>
+            <option value="local">Local Comercial</option>
+            <option value="otro">Otro</option>
+          </select>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
           <div>
-            <label for="propTitle" class="block text-sm font-medium text-gray-700 mb-2">Título</label>
-            <input type="text" id="propTitle" required class="w-full border border-gray-300 rounded px-3 py-2" />
-          </div>
-          <div>
-            <label for="propPrice" class="block text-sm font-medium text-gray-700 mb-2">Precio</label>
-            <input type="number" id="propPrice" required class="w-full border border-gray-300 rounded px-3 py-2" />
-          </div>
-          <div>
-            <label for="propType" class="block text-sm font-medium text-gray-700 mb-2">Tipo</label>
-            <select id="propType" required class="w-full border border-gray-300 rounded px-3 py-2">
-              <option value="">Selecciona</option>
-              <option value="casa">Casa</option>
-              <option value="departamento">Departamento</option>
-              <option value="terreno">Terreno</option>
-              <option value="local">Local Comercial</option>
-              <option value="otro">Otro</option>
-            </select>
-          </div>
-          <div class="grid grid-cols-2 gap-4">
-            <div>
-              <label for="propRooms" class="block text-sm font-medium text-gray-700 mb-2">Habitaciones</label>
-              <input type="number" id="propRooms" min="0" class="w-full border border-gray-300 rounded px-3 py-2" />
-            </div>
-            <div>
-              <label for="propBaths" class="block text-sm font-medium text-gray-700 mb-2">Baños</label>
-              <input type="number" id="propBaths" min="0" class="w-full border border-gray-300 rounded px-3 py-2" />
-            </div>
+            <label for="propRooms" class="block text-sm font-medium text-gray-700 mb-2">Habitaciones</label>
+            <input type="number" id="propRooms" min="0" class="w-full border border-gray-300 rounded px-3 py-2" />
           </div>
           <div>
-            <label for="propArea" class="block text-sm font-medium text-gray-700 mb-2">Área (m²)</label>
-            <input type="number" id="propArea" min="0" class="w-full border border-gray-300 rounded px-3 py-2" />
+            <label for="propBaths" class="block text-sm font-medium text-gray-700 mb-2">Baños</label>
+            <input type="number" id="propBaths" min="0" class="w-full border border-gray-300 rounded px-3 py-2" />
           </div>
-          <div>
-            <label for="propLocation" class="block text-sm font-medium text-gray-700 mb-2">Ubicación</label>
-            <input type="text" id="propLocation" required class="w-full border border-gray-300 rounded px-3 py-2" />
-          </div>
-          <div>
-            <label for="propDescription" class="block text-sm font-medium text-gray-700 mb-2">Descripción</label>
-            <textarea id="propDescription" rows="3" class="w-full border border-gray-300 rounded px-3 py-2"></textarea>
-          </div>
-          <div>
-            <label for="propImages" class="block text-sm font-medium text-gray-700 mb-2">Imágenes</label>
-            <input type="file" id="propImages" accept="image/*" multiple class="w-full" />
-            <div id="imagePreview" class="grid grid-cols-4 gap-2 mt-2"></div>
-          </div>
-          <div class="flex justify-end space-x-2">
-            <button type="button" id="cancelBtn" class="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700">Cancelar</button>
-            <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">Guardar Propiedad</button>
-          </div>
-        </form>
-      </div>
+        </div>
+        <div>
+          <label for="propArea" class="block text-sm font-medium text-gray-700 mb-2">Área (m²)</label>
+          <input type="number" id="propArea" min="0" class="w-full border border-gray-300 rounded px-3 py-2" />
+        </div>
+        <div>
+          <label for="propLocation" class="block text-sm font-medium text-gray-700 mb-2">Ubicación</label>
+          <input type="text" id="propLocation" required class="w-full border border-gray-300 rounded px-3 py-2" />
+        </div>
+        <div>
+          <label for="propDescription" class="block text-sm font-medium text-gray-700 mb-2">Descripción</label>
+          <textarea id="propDescription" rows="3" class="w-full border border-gray-300 rounded px-3 py-2"></textarea>
+        </div>
+        <div>
+          <label for="propImages" class="block text-sm font-medium text-gray-700 mb-2">Imágenes</label>
+          <input type="file" id="propImages" accept="image/*" multiple class="w-full" />
+          <div id="imagePreview" class="grid grid-cols-4 gap-2 mt-2"></div>
+        </div>
+        <div class="flex justify-end space-x-2">
+          <button type="button" id="cancelBtn" class="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700">Cancelar</button>
+          <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">Guardar Propiedad</button>
+        </div>
+      </form>
     </div>
   </div>
+</div>
 
   <!-- Property Detail Modal -->
   <div id="propertyDetailModal" class="modal fixed inset-0 bg-black bg-opacity-75 z-60 flex items-center justify-center p-4">
